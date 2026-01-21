@@ -35,7 +35,6 @@ class BoundingBox:
         :param length: length of the corner line
         :param thickness: thickness of the corner line
         :param stroke: Color of the Corners
-        :return:
         """
         x, y = self.origin
         x1, y1 = self.opposite

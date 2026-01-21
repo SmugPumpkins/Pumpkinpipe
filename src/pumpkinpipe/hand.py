@@ -34,12 +34,13 @@ def angle_3d(p1, p2):
 
 
 class Hand:
-    def __init__(self, landmarks, original_landmarks, side, box):
+    def __init__(self, landmarks, original_landmarks, side, box : BoundingBox):
         """
         Stores hand data for later use.
-        :param landmarks: The [x,y,z] pixel coordinates of landmarks
-        :param original_landmarks: The actual landmarks of the hand as provided by mediapipe
-        :param side: The side of the hand ("Left" or "Right")
+        :param landmarks: The [x,y,z] pixel coordinates of landmarks.
+        :param original_landmarks: The actual landmarks of the hand as provided by mediapipe.
+        :param side: The side of the hand ("Left" or "Right").
+        :param box: The bounding box of the hand.
         """
         self.landmarks = landmarks
         self.original_landmarks = original_landmarks
