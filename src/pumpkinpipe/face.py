@@ -9,6 +9,12 @@ class Face:
         self.landmarks = landmarks
         self.original_landmarks = original_landmarks
 
+    def draw(self):
+        pass
+
+    def debug(self):
+        pass
+
 class FaceDetector:
     def __init__(self, number_of_faces=1):
         with get_model_path("hand_landmarker.task") as model_path:
@@ -23,6 +29,7 @@ class FaceDetector:
             )
             self.landmarker = vision.FaceLandmarker.create_from_options(options)
         self.timestamp_ms = 0
+        self.frame_rate = 30
 
     def find_faces(self, image, flip=False):
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -32,7 +39,7 @@ class FaceDetector:
             data=image_rgb
         )
         result = self.landmarker.detect_for_video(mp_image, self.timestamp_ms)
-        self.timestamp_ms += 33
+        self.timestamp_ms += int(1000/self.frame_rate)
 
         if not result.face_landmarks:
             return []
