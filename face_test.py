@@ -34,7 +34,7 @@ while True:
     )
 
     result = landmarker.detect_for_video(mp_image, timestamp_ms)
-    timestamp_ms += 33  # ~30 FPS
+    timestamp_ms += 33
 
     if result.face_landmarks:
         h, w, _ = frame.shape

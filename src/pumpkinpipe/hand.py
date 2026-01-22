@@ -4,7 +4,7 @@ Author: Nathan Forsyth
 """
 import cv2, math
 import mediapipe as mp
-from mediapipe.tasks import python
+from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 from pumpkinpipe.utils.model_loader import get_model_path
 from pumpkinpipe.utils.drawing import BoundingBox, LandmarkStyle, ConnectionStyle
@@ -296,17 +296,17 @@ class HandDetector:
     def __init__(self, max_hands=2):
         with get_model_path("hand_landmarker.task") as model_path:
             options = vision.HandLandmarkerOptions(
-                base_options=python.BaseOptions(
+                base_options=BaseOptions(
                     model_asset_path=model_path
                 ),
                 num_hands=max_hands,
                 running_mode=vision.RunningMode.VIDEO
             )
-
             self.landmarker = vision.HandLandmarker.create_from_options(
                 options
             )
         self.timestamp_ms = 0
+
     def find_hands(self, image, flip=False):
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         height, width, channels = image.shape
