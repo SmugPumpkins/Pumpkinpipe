@@ -1,3 +1,7 @@
+"""
+An example of changing the hand styles when rendering hands with the hand detector module.
+Author: Nathan Forsyth
+"""
 from pumpkinpipe.hand import HandDetector
 import cv2
 

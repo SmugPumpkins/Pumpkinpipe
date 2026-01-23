@@ -1,3 +1,7 @@
+"""
+An example of the debug method for the hand module that shows off the different attributes that can be used with hands that are being tracked.
+Author: Nathan Forsyth
+"""
 from pumpkinpipe.hand import HandDetector
 import cv2
 

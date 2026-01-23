@@ -1,3 +1,8 @@
+"""
+An example of rendering hands to a different image than the one the hands are detected in.
+Author: Nathan Forsyth
+"""
+
 from pumpkinpipe.hand import HandDetector
 import cv2
 import numpy as np
