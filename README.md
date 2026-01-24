@@ -4,3 +4,7 @@ This is a library that combines different tools for computer vision in a way tha
 ```
 pip install pumpkinpipe
 ```
+
+See the documentation here:
+
+[https://smugpumpkins.github.io/Pumpkinpipe/]
