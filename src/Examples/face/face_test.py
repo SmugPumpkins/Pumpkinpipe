@@ -3,7 +3,7 @@ from mediapipe import Image, ImageFormat
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 
-MODEL_PATH = "src/pumpkinpipe/models/face_landmarker.task"
+MODEL_PATH = "../../pumpkinpipe/models/face_landmarker.task"
 
 options = vision.FaceLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=MODEL_PATH),

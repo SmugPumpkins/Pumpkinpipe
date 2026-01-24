@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,12 +18,13 @@ dependencies = [
 
 [tool.setuptools]
 package-dir = { "" = "src" }
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 pumpkinpipe = [
-    "models/*.task",
-    "models/*.tflite"
+  "models/*.task",
+  "models/*.tflite"
 ]

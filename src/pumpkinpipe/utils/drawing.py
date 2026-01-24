@@ -31,6 +31,8 @@ class BoundingBox:
 
     def draw_corners(self, image, length=30, thickness=5, stroke=(0, 255, 0)):
         """
+        Draw corners of the bounding box.
+
         :param image: Image to draw on.
         :param length: length of the corner line
         :param thickness: thickness of the corner line

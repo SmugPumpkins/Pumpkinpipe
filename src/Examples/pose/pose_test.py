@@ -6,7 +6,7 @@ from mediapipe import Image, ImageFormat
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 
-MODEL_PATH = "src/pumpkinpipe/models/pose_landmarker_full.task"
+MODEL_PATH = "../../pumpkinpipe/models/pose_landmarker_full.task"
 
 # --- Configure Pose Landmarker ---
 options = vision.PoseLandmarkerOptions(

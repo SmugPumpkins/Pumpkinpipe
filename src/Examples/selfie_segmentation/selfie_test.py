@@ -6,7 +6,7 @@ from mediapipe import Image, ImageFormat
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 
-MODEL_PATH = "src/pumpkinpipe/models/selfie_segmenter.tflite"
+MODEL_PATH = "../../pumpkinpipe/models/selfie_segmenter.tflite"
 
 options = vision.ImageSegmenterOptions(
     base_options=BaseOptions(model_asset_path=MODEL_PATH),

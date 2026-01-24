@@ -1,6 +1,8 @@
 """
 Hand Detection Module
-:author: Nathan Forsyth
+
+
+:Author: Nathan Forsyth
 """
 from dataclasses import dataclass
 from typing import Tuple
@@ -20,6 +22,7 @@ from mediapipe.tasks.python.vision import HandLandmarksConnections
 def angle_3d(p1 : list[float, float, float] | tuple[float, float, float], p2: list[float, float, float] | tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Returns the normalized 3D vector of 2 points.
+
     :param p1: The 3D coordinates of the origin point.
     :param p2: The 3D coordinates of the offset point
     :return: Normalized 3D vector representing the angle between p1 and p2.
@@ -40,6 +43,7 @@ def angle_3d(p1 : list[float, float, float] | tuple[float, float, float], p2: li
 class Line:
     """
     Dataclass for storing line points, colors, and z-index when drawing them for hand connections.
+
     :ivar start: The start point of the line in 2D pixel space.
     :ivar end: The end point of the line in 2D pixel space.
     :ivar z: The average z-index of the line, used for sorting the order to draw them in.
@@ -54,6 +58,7 @@ class Line:
 class Point:
     """
     Dataclass for storing landmark points, colors, and z-index when drawing them for hand connections.
+
     :ivar pos: The position of the landmark in 2D pixel space.
     :ivar z: The z-index of the landmark, used for sorting the order to draw them in.
     :ivar color: The color of the landmark.
@@ -66,6 +71,7 @@ class Point:
 class Hand:
     """
     Class for displaying and retrieving data for hands recognized by the HandDetector module.
+
     :ivar landmarks: List of landmarks using 3D pixel coordinates.
     :ivar original_landmarks: List of the original landmark objects provided by the HandDetector.
     :ivar side: String value representing the side of the hand ("Left" or "Right").
@@ -142,6 +148,7 @@ class Hand:
     def __init__(self, landmarks : list[tuple[int, int, int]], original_landmarks: list[object], side : str, box : BoundingBox, image : np.ndarray):
         """
         Initialize the hand.
+
         :param landmarks: The [x,y,z] pixel coordinates of landmarks.
         :param original_landmarks: The actual landmarks of the hand as provided by mediapipe.
         :param side: The side of the hand ("Left" or "Right").
@@ -169,6 +176,7 @@ class Hand:
     def landmark_distance(self, landmark_index_1 : int, landmark_index_2 : int, image : None | np.ndarray=None, draw : bool=False) -> float:
         """
         Finds the distance in pixels between 2 specified landmarks.
+
         :param landmark_index_1: The landmark index for the first point
         :param landmark_index_2: The landmark index for the second point
         :param image: If not None, draws a line between the 2 points on the specified image
@@ -223,6 +231,7 @@ class Hand:
     def finger_flags(self) -> list[int]:
         """
         Finds which fingers are up and returns them as a binary list in the order of thumb, index, middle, ring, pinky.
+
         :return: A list of binary values representing whether a finger is up or down
         """
         # Initialize empty list for finger flags
@@ -260,6 +269,7 @@ class Hand:
     def fingers_up(self) -> list[str]:
         """
         Provides a list of the fingers that are up in English.
+
         :return: A list of finger names.
         """
         # Initialize empty list for finger flags
@@ -277,6 +287,7 @@ class Hand:
     def fingers_down(self) -> list[str]:
         """
         Provides a list of the fingers that are down in English.
+
         :return: A list of finger names.
         """
         # Initialize empty list for finger flags
@@ -293,6 +304,7 @@ class Hand:
     def draw(self, image : None | np.ndarray=None):
         """
         Draws the hand skeleton on the specified image. Currently, this library uses a custom way to draw while drawing_utils.py remains unimplemented in the official mediapipe release.
+
         :param image: The target image for the drawing. If none, it will draw on the hands self.image
         """
         if image is None:
@@ -330,6 +342,7 @@ class Hand:
     def debug(self, image : None | np.ndarray=None, skeleton:bool=True, bounding_box:bool=True, center:bool=True, side:bool=True, fingers:bool=True, flags:bool=True, tip_points:bool=True):
         """
         Draws the requested debug information. Defaults to all debug information.
+
         :param image: The image to draw the debug information on. If image is none then the hand will draw on its self.image
         :param skeleton: When True, draw the landmarks and connections of the hand. Hand regions are separated by color.
         :param bounding_box: When True, draw the outer bounding box of the hand.
@@ -523,6 +536,7 @@ class Hand:
     def set_connection_style(self, stroke: None | tuple[int, int, int] | list[int, int, int]=None, thickness : None | float=None):
         """
         Modifies the style of the hand connections when it is drawn.
+
         :param stroke: The BGR color of the connections.
         :param thickness: The thickness of the connector lines in pixels.
         """
@@ -536,6 +550,7 @@ class Hand:
     def set_landmarks_style(self, fill: None | tuple[int, int, int] | list[int, int, int]=None, stroke: None | tuple[int, int, int] | list[int, int, int]=None, radius: float | None=None, thickness: float | None=None):
         """
         Modifies the style of the hand landmarks when drawn.
+
         :param fill: The BGR color of the landmarks
         :param stroke: The BGR color of the outline of the landmarks
         :param thickness: Thickness of outline on circle
@@ -554,6 +569,7 @@ class Hand:
 class HandDetector:
     """
     Class for setting up mediapipe and finding hand data.
+
     :ivar timestamp_ms: Variable for tracking time between frames.
     :ivar frame_rate: Desired frame rate. Set to 30.
     :ivar landmarker: Pipeline to detect hand landmarks.
@@ -561,6 +577,7 @@ class HandDetector:
     def __init__(self, max_hands:int=2):
         """
         Initialize the hand detector.
+
         :param max_hands: The maximum number of hands for the detector to try and process.
         """
         with get_model_path("hand_landmarker.task") as model_path:
@@ -580,6 +597,7 @@ class HandDetector:
     def find_hands(self, image : np.ndarray, flip : bool=False) -> list[Hand]:
         """
         Detect hands and add them to a list.
+
         :param image: The image to detect hands in.
         :param flip: When flip is True, handedness is reversed. "Left" becomes "Right" and vice versa.
         :return: A list of detected hands.
