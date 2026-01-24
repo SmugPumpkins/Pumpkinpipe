@@ -68,7 +68,7 @@ def stack_text(
     # baseline for first line (inside top margin)
     first_h = sizes[0][0][1]
     y_cursor = oy + first_h
-
+    x = ox
     for text, ((w, h), baseline) in zip(lines, sizes):
 
         # consistent justification for all lines
@@ -97,3 +97,11 @@ def stack_text(
 def outline_text():
     # TODO: Create a method that allows for a user to input text with an outline color stacked on top of text without it
     pass
+
+class TextBox:
+    def __init__(self):
+        pass
+
+class CreditText:
+    def __init__(self):
+        pass
