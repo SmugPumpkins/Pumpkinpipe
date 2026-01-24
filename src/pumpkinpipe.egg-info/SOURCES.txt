@@ -24,6 +24,7 @@ src/pumpkinpipe/models/face_landmarker.task
 src/pumpkinpipe/models/hand_landmarker.task
 src/pumpkinpipe/models/pose_landmarker_full.task
 src/pumpkinpipe/models/selfie_segmenter.tflite
+src/pumpkinpipe/utils/__init__.py
 src/pumpkinpipe/utils/drawing.py
 src/pumpkinpipe/utils/model_loader.py
 src/pumpkinpipe/utils/text.py
