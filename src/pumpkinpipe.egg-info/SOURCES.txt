@@ -27,3 +27,4 @@ src/pumpkinpipe/models/selfie_segmenter.tflite
 src/pumpkinpipe/utils/drawing.py
 src/pumpkinpipe/utils/model_loader.py
 src/pumpkinpipe/utils/text.py
+src/pumpkinpipe/utils/tools.py
