@@ -2,10 +2,9 @@
 Hand Detection Module
 
 
-:author: Nathan Forsyth
+Author: Nathan Forsyth
 """
-from dataclasses import dataclass
-from typing import Tuple
+from typing import Sequence
 
 import cv2, math
 import mediapipe as mp
@@ -13,59 +12,12 @@ import numpy as np
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 from pumpkinpipe.utils.model_loader import get_model_path
-from pumpkinpipe.utils.drawing import BoundingBox, LandmarkStyle, ConnectionStyle
+from pumpkinpipe.utils.drawing import BoundingBox, LandmarkStyle, ConnectionStyle, Connection, Landmark
 from pumpkinpipe.utils.text import stack_text, HAlign, VAlign
+from pumpkinpipe.utils.tools import angle_3d
 from mediapipe.tasks.python.vision import HandLandmarksConnections
 
 
-
-def angle_3d(p1 : list[float, float, float] | tuple[float, float, float], p2: list[float, float, float] | tuple[float, float, float]) -> tuple[float, float, float]:
-    """
-    Returns the normalized 3D vector of 2 points.
-
-    :param p1: The 3D coordinates of the origin point.
-    :param p2: The 3D coordinates of the offset point
-    :return: Normalized 3D vector representing the angle between p1 and p2.
-    """
-    # vector 1 → 2
-    x = p2[0] - p1[0]
-    y = p2[1] - p1[1]
-    z = p2[2] - p1[2]
-    # vector magnitude (length)
-    magnitude = math.sqrt(x * x + y * y + z * z)
-    # avoid division by zero
-    if magnitude == 0:
-        return 0, 0, 0
-    # normalized vector (unit length)
-    return x / magnitude, y / magnitude, z / magnitude
-
-@dataclass
-class Line:
-    """
-    Dataclass for storing line points, colors, and z-index when drawing them for hand connections.
-
-    :ivar start: The start point of the line in 2D pixel space.
-    :ivar end: The end point of the line in 2D pixel space.
-    :ivar z: The average z-index of the line, used for sorting the order to draw them in.
-    :ivar color: The color of the line.
-    """
-    start: Tuple[int, int]
-    end: Tuple[int, int]
-    z: float
-    color: Tuple[int, int, int]
-
-@dataclass
-class Point:
-    """
-    Dataclass for storing landmark points, colors, and z-index when drawing them for hand connections.
-
-    :ivar pos: The position of the landmark in 2D pixel space.
-    :ivar z: The z-index of the landmark, used for sorting the order to draw them in.
-    :ivar color: The color of the landmark.
-    """
-    pos: Tuple[int, int]
-    z: int
-    color: Tuple[int, int, int]
 
 
 class Hand:
@@ -73,7 +25,7 @@ class Hand:
     Class for displaying and retrieving data for hands recognized by the HandDetector module.
 
     :ivar landmarks: List of landmarks using 3D pixel coordinates.
-    :ivar original_landmarks: List of the original landmark objects provided by the HandDetector.
+    :ivar normalized_landmarks: List of the original landmark objects provided by the HandDetector.
     :ivar side: String value representing the side of the hand ("Left" or "Right").
     :ivar thumb: 3D pixel coordinates of the thumb tip position.
     :ivar index: 3D pixel coordinates of the index fingertip.
@@ -84,36 +36,14 @@ class Hand:
     :ivar connection_style: Style settings for the color and thickness of the line connections of the hand when drawn.
     :ivar landmark_style: Style settings for the color, stroke color, stroke thickness, and radius of the landmarks of the hand when drawn.
     :ivar flags: List of binary values representing which fingers are up and which fingers are down.
-    :ivar box: The bounding box of the hand.
-    :ivar center: The 2D pixel coordinates center of the bounding box.
-    :ivar image: The image used by the HandDetector. Used as the default image to display the drawn hand.
-    :cvar DEFAULT_CONNECTION_STYLE: The default style settings for the color and thickness of the line connections of the hand when drawn.
-    :cvar DEFAULT_LANDMARK_STYLE: The default style settings for the color, stroke color, stroke thickness, and radius of the landmarks of the hand when drawn.
-    :cvar REGION_COLORS: The predefined colors for the different regions of the hand in BGR color space.
-    :cvar CONNECTIONS: A list containing all the Connection objects for the whole hand.
-    :cvar PALM_CONNECTIONS: A list containing all the Connection objects for the palm.
-    :cvar THUMB_CONNECTIONS: A list containing all the Connection objects for the thumb.
-    :cvar INDEX_CONNECTIONS: A list containing all the Connection objects for the index finger.
-    :cvar MIDDLE_CONNECTIONS: A list containing all the Connection objects for the middle finger.
-    :cvar RING_CONNECTIONS: A list containing all the Connection objects for the ring finger.
-    :cvar PINKY_CONNECTIONS: A list containing all the Connection objects for the pinky finger.
-    :cvar THUMB_LANDMARKS: A tuple of indices for the thumb landmarks.
-    :cvar INDEX_LANDMARKS: A tuple of indices for the index finger landmarks.
-    :cvar MIDDLE_LANDMARKS: A tuple of indices for the middle finger landmarks.
-    :cvar RING_LANDMARKS: A tuple of indices for the ring finger landmarks.
-    :cvar PINKY_LANDMARKS: A tuple of indices for the pinky finger landmarks.
-    :cvar PALM_LANDMARKS: A tuple of indices for the palm landmarks.
-    :cvar THUMB_TIP_ID: The index for the tip of the thumb landmark (4).
-    :cvar INDEX_TIP_ID: The index for the tip of the index finger landmark (8).
-    :cvar MIDDLE_TIP_ID: The index for the tip of the middle finger landmark (12).
-    :cvar RING_TIP_ID: The index for the tip of the ring finger landmark (16).
-    :cvar PINKY_TIP_ID: The index for the tip of the pinky finger landmark (20).
-    :cvar WRIST_ID: The index for the wrist (0).
+    :ivar box: Bounding box of the hand.
+    :ivar center: 2D pixel coordinates center of the bounding box.
+    :ivar image: Image used by the HandDetector. Used as the default image to display the drawn hand.
     """
-    DEFAULT_CONNECTION_STYLE : ConnectionStyle = ConnectionStyle()
-    DEFAULT_LANDMARK_STYLE : LandmarkStyle = LandmarkStyle()
+    _DEFAULT_CONNECTION_STYLE : ConnectionStyle = ConnectionStyle()
+    _DEFAULT_LANDMARK_STYLE : LandmarkStyle = LandmarkStyle()
 
-    REGION_COLORS : tuple[tuple[int, int, int]]= (
+    _REGION_COLORS : Sequence[tuple[int, int, int]]= (
         (245, 135, 66),
         (245, 66, 167),
         (105, 66, 245),
@@ -122,56 +52,56 @@ class Hand:
         (127, 127, 127)
     )
 
-    CONNECTIONS = HandLandmarksConnections.HAND_CONNECTIONS
-    PALM_CONNECTIONS = HandLandmarksConnections.HAND_PALM_CONNECTIONS
-    THUMB_CONNECTIONS = HandLandmarksConnections.HAND_THUMB_CONNECTIONS
-    INDEX_CONNECTIONS = HandLandmarksConnections.HAND_INDEX_FINGER_CONNECTIONS
-    MIDDLE_CONNECTIONS = HandLandmarksConnections.HAND_MIDDLE_FINGER_CONNECTIONS
-    RING_CONNECTIONS = HandLandmarksConnections.HAND_RING_FINGER_CONNECTIONS
-    PINKY_CONNECTIONS = HandLandmarksConnections.HAND_PINKY_FINGER_CONNECTIONS
+    _CONNECTIONS = HandLandmarksConnections.HAND_CONNECTIONS
+    _PALM_CONNECTIONS = HandLandmarksConnections.HAND_PALM_CONNECTIONS
+    _THUMB_CONNECTIONS = HandLandmarksConnections.HAND_THUMB_CONNECTIONS
+    _INDEX_CONNECTIONS = HandLandmarksConnections.HAND_INDEX_FINGER_CONNECTIONS
+    _MIDDLE_CONNECTIONS = HandLandmarksConnections.HAND_MIDDLE_FINGER_CONNECTIONS
+    _RING_CONNECTIONS = HandLandmarksConnections.HAND_RING_FINGER_CONNECTIONS
+    _PINKY_CONNECTIONS = HandLandmarksConnections.HAND_PINKY_FINGER_CONNECTIONS
 
-    THUMB_LANDMARKS = (2, 3, 4)
-    INDEX_LANDMARKS = (6, 7, 8)
-    MIDDLE_LANDMARKS  = (10, 11, 12)
-    RING_LANDMARKS = (14, 15, 16)
-    PINKY_LANDMARKS = (18, 19, 20)
-    PALM_LANDMARKS = (0, 1, 5, 9, 13, 17)
+    _THUMB_LANDMARKS = (2, 3, 4)
+    _INDEX_LANDMARKS = (6, 7, 8)
+    _MIDDLE_LANDMARKS  = (10, 11, 12)
+    _RING_LANDMARKS = (14, 15, 16)
+    _PINKY_LANDMARKS = (18, 19, 20)
+    _PALM_LANDMARKS = (0, 1, 5, 9, 13, 17)
 
-    THUMB_TIP_ID = 4
-    INDEX_TIP_ID = 8
-    MIDDLE_TIP_ID = 12
-    RING_TIP_ID = 16
-    PINKY_TIP_ID = 20
-    WRIST_ID = 0
+    _THUMB_TIP_ID = 4
+    _INDEX_TIP_ID = 8
+    _MIDDLE_TIP_ID = 12
+    _RING_TIP_ID = 16
+    _PINKY_TIP_ID = 20
+    _WRIST_ID = 0
 
 
-    def __init__(self, landmarks : list[tuple[int, int, int]], original_landmarks: list[object], side : str, box : BoundingBox, image : np.ndarray):
+    def __init__(self, landmarks : list[tuple[int, int, int]], normalized_landmarks: list[tuple[float, float, float]], side : str, box : BoundingBox, image : np.ndarray):
         """
         Initialize the hand.
 
         :param landmarks: The [x,y,z] pixel coordinates of landmarks.
-        :param original_landmarks: The actual landmarks of the hand as provided by mediapipe.
+        :param normalized_landmarks: The actual landmarks of the hand as provided by mediapipe.
         :param side: The side of the hand ("Left" or "Right").
         :param box: The bounding box of the hand.
         :param image: The image that was used to detect the hand.
         """
-        self.landmarks = landmarks
-        self.original_landmarks = original_landmarks
-        self.side = side
-        self.thumb = self.landmarks[Hand.THUMB_TIP_ID]
-        self.index = self.landmarks[Hand.INDEX_TIP_ID]
-        self.middle = self.landmarks[Hand.MIDDLE_TIP_ID]
-        self.ring = self.landmarks[Hand.RING_TIP_ID]
-        self.pinky = self.landmarks[Hand.PINKY_TIP_ID]
-        self.wrist = self.landmarks[Hand.WRIST_ID]
-        self.connection_style = ConnectionStyle()
-        self.landmark_style = LandmarkStyle()
+        self.landmarks : list[tuple[int, int, int]] = landmarks
+        self.normalized_landmarks : list[tuple[float, float, float]] = normalized_landmarks
+        self.side : str = side
+        self.thumb : tuple[int, int, int] = self.landmarks[Hand._THUMB_TIP_ID]
+        self.index : tuple[int, int, int] = self.landmarks[Hand._INDEX_TIP_ID]
+        self.middle : tuple[int, int, int] = self.landmarks[Hand._MIDDLE_TIP_ID]
+        self.ring : tuple[int, int, int] = self.landmarks[Hand._RING_TIP_ID]
+        self.pinky : tuple[int, int, int] = self.landmarks[Hand._PINKY_TIP_ID]
+        self.wrist : tuple[int, int, int] = self.landmarks[Hand._WRIST_ID]
+        self.connection_style : ConnectionStyle = ConnectionStyle()
+        self.landmark_style : LandmarkStyle = LandmarkStyle()
 
-        self.flags = self.finger_flags()
-        self.box = box
-        self.center = self.box.center
+        self.flags : list[int] = self.finger_flags()
+        self.box : BoundingBox = box
+        self.center : tuple[int, int] = self.box.center
 
-        self.image = image
+        self.image : np.ndarray = image
 
     def landmark_distance(self, landmark_index_1 : int, landmark_index_2 : int, image : None | np.ndarray=None, draw : bool=False) -> float:
         """
@@ -235,7 +165,7 @@ class Hand:
         :return: A list of binary values representing whether a finger is up or down
         """
         # Initialize empty list for finger flags
-        fingers = []
+        fingers : list[int] = []
 
         # Distance for thumb to be considered open
         distance_threshold = 0.3
@@ -251,12 +181,12 @@ class Hand:
             fingers.append(0)
 
         # Landmark indices for index_tip, middle_tip, ring_tip, and pinky_tip
-        finger_indices = [Hand.INDEX_TIP_ID, Hand.MIDDLE_TIP_ID, Hand.RING_TIP_ID, Hand.PINKY_TIP_ID]
+        finger_indices = [Hand._INDEX_TIP_ID, Hand._MIDDLE_TIP_ID, Hand._RING_TIP_ID, Hand._PINKY_TIP_ID]
 
         # Compare the distance between the tip and the wrist to the distance between the knuckle and the wrist
         for index in finger_indices:
-            tip_distance = math.dist(self.landmarks[index], self.landmarks[Hand.WRIST_ID])
-            knuckle_distance = math.dist(self.landmarks[index - 2], self.landmarks[Hand.WRIST_ID])
+            tip_distance = math.dist(self.landmarks[index], self.landmarks[Hand._WRIST_ID])
+            knuckle_distance = math.dist(self.landmarks[index - 2], self.landmarks[Hand._WRIST_ID])
             # Append each finger value to fingers
             if tip_distance > knuckle_distance:
                 fingers.append(1)
@@ -310,7 +240,7 @@ class Hand:
         if image is None:
             image = self.image
 
-        for connection in Hand.CONNECTIONS:
+        for connection in Hand._CONNECTIONS:
             start_x, start_y, _ = self.landmarks[connection.start]
             end_x, end_y, _ = self.landmarks[connection.end]
             cv2.line(
@@ -367,36 +297,36 @@ class Hand:
             connection_lines = []
             for connections, color in zip(
                 [
-                    Hand.THUMB_CONNECTIONS,
-                    Hand.INDEX_CONNECTIONS,
-                    Hand.MIDDLE_CONNECTIONS,
-                    Hand.RING_CONNECTIONS,
-                    Hand.PINKY_CONNECTIONS,
-                    Hand.PALM_CONNECTIONS
+                    Hand._THUMB_CONNECTIONS,
+                    Hand._INDEX_CONNECTIONS,
+                    Hand._MIDDLE_CONNECTIONS,
+                    Hand._RING_CONNECTIONS,
+                    Hand._PINKY_CONNECTIONS,
+                    Hand._PALM_CONNECTIONS
                 ],
-                Hand.REGION_COLORS
+                Hand._REGION_COLORS
             ):
                 for connection in connections:
                     start_x, start_y, start_z = self.landmarks[connection.start]
                     end_x, end_y, end_z = self.landmarks[connection.end]
                     z_average = -(start_z + end_z) / 2
-                    new_line : Line = Line((start_x, start_y), (end_x, end_y), z_average, color)
+                    new_line : Connection = Connection((start_x, start_y), (end_x, end_y), z_average, color)
                     connection_lines.append(new_line)
             points = []
             for landmarks, color in zip(
                 [
-                    Hand.THUMB_LANDMARKS,
-                    Hand.INDEX_LANDMARKS,
-                    Hand.MIDDLE_LANDMARKS,
-                    Hand.RING_LANDMARKS,
-                    Hand.PINKY_LANDMARKS,
-                    Hand.PALM_LANDMARKS
+                    Hand._THUMB_LANDMARKS,
+                    Hand._INDEX_LANDMARKS,
+                    Hand._MIDDLE_LANDMARKS,
+                    Hand._RING_LANDMARKS,
+                    Hand._PINKY_LANDMARKS,
+                    Hand._PALM_LANDMARKS
                 ],
-                Hand.REGION_COLORS
+                Hand._REGION_COLORS
             ):
                 for landmark in landmarks:
                     x, y, z = self.landmarks[landmark]
-                    points.append(Point((x, y,), -z, color))
+                    points.append(Landmark((x, y,), -z, color))
             connection_lines.sort(key=lambda obj: obj.z)
             for connection_line in connection_lines:
                 cv2.line(
@@ -404,23 +334,23 @@ class Hand:
                     connection_line.start,
                     connection_line.end,
                     connection_line.color,
-                    Hand.DEFAULT_CONNECTION_STYLE.thickness
+                    Hand._DEFAULT_CONNECTION_STYLE.thickness
                 )
             points.sort(key=lambda obj: obj.z)
             for point in points:
                 cv2.circle(
                     image,
                     point.pos,
-                    Hand.DEFAULT_LANDMARK_STYLE.radius,
+                    Hand._DEFAULT_LANDMARK_STYLE.radius,
                     point.color,
                     -1
                 )
                 cv2.circle(
                     image,
                     point.pos,
-                    Hand.DEFAULT_LANDMARK_STYLE.radius,
-                    Hand.DEFAULT_LANDMARK_STYLE.stroke,
-                    Hand.DEFAULT_LANDMARK_STYLE.thickness
+                    Hand._DEFAULT_LANDMARK_STYLE.radius,
+                    Hand._DEFAULT_LANDMARK_STYLE.stroke,
+                    Hand._DEFAULT_LANDMARK_STYLE.thickness
                 )
 
         # Display the bounding box
@@ -507,14 +437,14 @@ class Hand:
         if tip_points:
             for tip, color in zip(
                 [
-                    Hand.THUMB_TIP_ID,
-                    Hand.INDEX_TIP_ID,
-                    Hand.MIDDLE_TIP_ID,
-                    Hand.RING_TIP_ID,
-                    Hand.PINKY_TIP_ID,
-                    Hand.WRIST_ID
+                    Hand._THUMB_TIP_ID,
+                    Hand._INDEX_TIP_ID,
+                    Hand._MIDDLE_TIP_ID,
+                    Hand._RING_TIP_ID,
+                    Hand._PINKY_TIP_ID,
+                    Hand._WRIST_ID
                 ],
-                Hand.REGION_COLORS
+                Hand._REGION_COLORS
             ):
                 b, g, r = color
                 b = b // 1.5
@@ -625,9 +555,11 @@ class HandDetector:
             result.handedness
         ):
             pixel_landmarks : list[tuple[int, int, int]] = []
+            normalized_landmarks : list[tuple[float, float, float]] = []
             x_list = []
             y_list = []
             for lm in landmarks:
+                normalized_landmarks.append((lm.x, lm.y, lm.z))
                 px_lm = (int(lm.x * width), int(lm.y * height), int(lm.z * width))
                 pixel_landmarks.append(px_lm)
                 x_list.append(int(lm.x * width))
@@ -644,7 +576,7 @@ class HandDetector:
                     side = "Right"
                 else:
                     side = "Left"
-            hand = Hand(pixel_landmarks, landmarks, side, bounding_box, image)
+            hand = Hand(pixel_landmarks, normalized_landmarks, side, bounding_box, image)
             hands.append(hand)
 
         return hands

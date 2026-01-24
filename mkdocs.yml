@@ -28,3 +28,4 @@ nav:
       - Face: api/face.md
       - Pose: api/pose.md
       - Selfie Segmentation: api/selfie_segmentation.md
+      - Utils: api/utils.md
