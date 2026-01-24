@@ -1,0 +1,30 @@
+site_name: Pumpkinpipe
+site_description: Student-friendly MediaPipe Tasks wrapper
+site_author: Nathan Forsyth
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: sphinx
+            show_source: true
+            show_signature_annotations: true
+            separate_signature: true
+
+nav:
+  - Home: index.md
+  - API Reference:
+      - Hand: api/hand.md
+      - Face: api/face.md
+      - Pose: api/pose.md
+      - Selfie Segmentation: api/selfie_segmentation.md

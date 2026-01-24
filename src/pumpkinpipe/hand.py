@@ -2,7 +2,7 @@
 Hand Detection Module
 
 
-:Author: Nathan Forsyth
+:author: Nathan Forsyth
 """
 from dataclasses import dataclass
 from typing import Tuple
