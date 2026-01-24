@@ -3,7 +3,7 @@ site_description: Student-friendly MediaPipe Tasks wrapper
 site_author: Nathan Forsyth
 
 theme:
-  name: material
+  name: dracula
   features:
     - navigation.sections
     - navigation.expand
