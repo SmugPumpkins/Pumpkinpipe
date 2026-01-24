@@ -7,4 +7,4 @@ pip install pumpkinpipe
 
 See the documentation here:
 
-[https://smugpumpkins.github.io/Pumpkinpipe/]
+https://smugpumpkins.github.io/Pumpkinpipe/
