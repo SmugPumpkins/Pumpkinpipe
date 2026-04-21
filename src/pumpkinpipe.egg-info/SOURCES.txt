@@ -9,6 +9,7 @@ src/Examples/hand/hand_debug.py
 src/Examples/hand/hand_landmark_distance.py
 src/Examples/pose/pose_test.py
 src/Examples/selfie_segmentation/selfie_test.py
+src/Examples/utils/overlay_image.py
 src/pumpkinpipe/__init__.py
 src/pumpkinpipe/face.py
 src/pumpkinpipe/hand.py
