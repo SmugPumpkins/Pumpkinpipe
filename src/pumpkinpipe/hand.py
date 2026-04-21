@@ -359,8 +359,84 @@ class Hand:
             self.box.draw_corners(image, length=19, thickness=4, stroke=(255,255,255))
 
         # Display the hand center
+
+
+        # Display the hand side ("Left" or "Right")
+        if side:
+            stack_text(
+                image,
+                [self.side],
+                (self.center[0], self.center[1] + 5),
+                debug_font,
+                debug_text_size * 2,
+                debug_thickness * 2,
+                (255,255,255),
+                HAlign.CENTER,
+                VAlign.TOP
+            )
+
+        # Display the hand flags and fingers up
+        text_lines = []
+        if flags:
+            flag_text = f"Flags: {self.flags}"
+            text_lines.append(flag_text)
+        if fingers:
+            text_lines.append("Fingers:")
+            for finger in self.fingers_up():
+                text_lines.append(finger)
+        if self.side == "Left":
+            stack_text(
+                image,
+                text_lines,
+                (0,0),
+                debug_font,
+                debug_text_size,
+                debug_thickness,
+                (255,255,255)
+            )
+        else:
+            stack_text(
+                image,
+                text_lines,
+                (width, 0),
+                debug_font,
+                debug_text_size,
+                debug_thickness,
+                (255, 255, 255),
+                h_align=HAlign.RIGHT
+            )
+
+        # Display the position values for each fingertip and the wrist
+        if tip_points:
+            for tip, color in zip(
+                [
+                    Hand._THUMB_TIP_ID,
+                    Hand._INDEX_TIP_ID,
+                    Hand._MIDDLE_TIP_ID,
+                    Hand._RING_TIP_ID,
+                    Hand._PINKY_TIP_ID,
+                    Hand._WRIST_ID
+                ],
+                Hand._REGION_COLORS
+            ):
+                b, g, r = color
+                # b = b // 1.5
+                # g = g // 1.5
+                # r = r // 1.5
+                x, y, _ = self.landmarks[tip]
+                stack_text(
+                    image,
+                    [f"{self.landmarks[tip]}"],
+                    (x, y),
+                    debug_font,
+                    debug_text_size,
+                    debug_thickness,
+                    (b, g, r),
+                    HAlign.CENTER,
+                    VAlign.BOTTOM
+                )
         if center:
-            center_text = f"Center (x:{self.center[0]}, y:{self.center[1]})"
+            center_text = f"Center: ({self.center[0]}, {self.center[1]})"
             cv2.circle(
                 image,
                 self.center,
@@ -383,85 +459,10 @@ class Hand:
                 debug_text_size * 1.5,
                 debug_thickness * 2,
                 (0,255,0),
-                HAlign.LEFT,
+                HAlign.CENTER,
                 VAlign.BOTTOM,
                 0
             )
-
-        # Display the hand side ("Left" or "Right")
-        if side:
-            stack_text(
-                image,
-                [self.side],
-                (self.wrist[0], self.box.opposite[1]),
-                debug_font,
-                debug_text_size * 2,
-                debug_thickness * 2,
-                (0,0,0),
-                HAlign.CENTER,
-                VAlign.TOP
-            )
-
-        # Display the hand flags and fingers up
-        text_lines = []
-        if flags:
-            flag_text = f"Flags: {self.flags}"
-            text_lines.append(flag_text)
-        if fingers:
-            text_lines.append("Fingers:")
-            for finger in self.fingers_up():
-                text_lines.append(finger)
-        if self.side == "Left":
-            stack_text(
-                image,
-                text_lines,
-                (0,0),
-                debug_font,
-                debug_text_size,
-                debug_thickness,
-                (0,0,0)
-            )
-        else:
-            stack_text(
-                image,
-                text_lines,
-                (width, 0),
-                debug_font,
-                debug_text_size,
-                debug_thickness,
-                (0, 0, 0),
-                h_align=HAlign.RIGHT
-            )
-
-        # Display the position values for each fingertip and the wrist
-        if tip_points:
-            for tip, color in zip(
-                [
-                    Hand._THUMB_TIP_ID,
-                    Hand._INDEX_TIP_ID,
-                    Hand._MIDDLE_TIP_ID,
-                    Hand._RING_TIP_ID,
-                    Hand._PINKY_TIP_ID,
-                    Hand._WRIST_ID
-                ],
-                Hand._REGION_COLORS
-            ):
-                b, g, r = color
-                b = b // 1.5
-                g = g // 1.5
-                r = r // 1.5
-                x, y, _ = self.landmarks[tip]
-                stack_text(
-                    image,
-                    [f"{self.landmarks[tip]}"],
-                    (x, y),
-                    debug_font,
-                    debug_text_size,
-                    debug_thickness,
-                    (b, g, r),
-                    HAlign.CENTER,
-                    VAlign.BOTTOM
-                )
 
     def set_connection_style(self, stroke: None | tuple[int, int, int] | list[int, int, int]=None, thickness : None | float=None):
         """
@@ -598,7 +599,6 @@ def main():
         img = cv2.flip(img, 1)
         # Find hands in the current frame
         hands = hand_detector.find_hands(img)
-
         # Methods for each hand
         for hand in hands:
             hand.debug()

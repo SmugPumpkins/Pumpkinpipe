@@ -1,6 +1,17 @@
 from dataclasses import dataclass
 import cv2
 import numpy as np
+from enum import Enum, auto
+
+class HAlign(Enum):
+    LEFT = auto()
+    CENTER = auto()
+    RIGHT = auto()
+
+class VAlign(Enum):
+    TOP = auto()
+    MIDDLE = auto()
+    BOTTOM = auto()
 
 @dataclass
 class Landmark:
@@ -44,7 +55,6 @@ class LandmarkStyle:
     stroke: tuple[int, int, int] = (255, 255, 255)
     radius: int = 5
     thickness: int = 1
-
 
 @dataclass
 class ConnectionStyle:
@@ -141,4 +151,84 @@ class BoundingBox:
         # Bottom Right  x1,y1
         cv2.line(image, (x1, y1), (x1 - length, y1), stroke, thickness)
         cv2.line(image, (x1, y1), (x1, y1 - length), stroke, thickness)
+
+def overlay_image(
+    target: np.ndarray,
+    image_path: str,
+    origin: tuple[int, int],
+    h_align: HAlign = HAlign.LEFT,
+    v_align: VAlign = VAlign.TOP,
+    scale: float = 1.0
+):
+    """
+    Draw an image (png/jpg) onto a target image with alignment and transparency.
+
+    :param target: BGR image to draw onto (modified in place)
+    :param image_path: path to png/jpg (png supports alpha)
+    :param origin: (x,y) coordinate of image placement
+    :param h_align: horizontal alignment relative to (x, y)
+    :param v_align: vertical alignment relative to (x, y)
+    :param scale: scaling factor (1.0 = original size)
+    """
+
+    overlay = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    if overlay is None:
+        raise ValueError(f"Could not load image: {image_path}")
+
+    # --- scale image ---
+    if scale != 1.0:
+        h, w = overlay.shape[:2]
+        new_w = max(1, int(w * scale))  # prevent 0-size
+        new_h = max(1, int(h * scale))
+        overlay = cv2.resize(
+            overlay,
+            (new_w, new_h),
+            interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
+        )
+
+    h, w = overlay.shape[:2]
+    x, y = origin
+
+    # --- alignment ---
+    if h_align == HAlign.LEFT:
+        ox = x
+    elif h_align == HAlign.CENTER:
+        ox = x - w // 2
+    else:  # RIGHT
+        ox = x - w
+
+    if v_align == VAlign.TOP:
+        oy = y
+    elif v_align == VAlign.MIDDLE:
+        oy = y - h // 2
+    else:  # BOTTOM
+        oy = y - h
+
+    # --- clip to target bounds ---
+    th, tw = target.shape[:2]
+
+    x1 = max(0, ox)
+    y1 = max(0, oy)
+    x2 = min(tw, ox + w)
+    y2 = min(th, oy + h)
+
+    if x1 >= x2 or y1 >= y2:
+        return
+
+    overlay_x1 = x1 - ox
+    overlay_y1 = y1 - oy
+    overlay_x2 = overlay_x1 + (x2 - x1)
+    overlay_y2 = overlay_y1 + (y2 - y1)
+
+    roi = target[y1:y2, x1:x2]
+    overlay_crop = overlay[overlay_y1:overlay_y2, overlay_x1:overlay_x2]
+
+    # --- alpha blending ---
+    if overlay_crop.shape[2] == 4:
+        alpha = overlay_crop[:, :, 3] / 255.0
+        alpha = alpha[..., None]
+
+        roi[:] = (1 - alpha) * roi + alpha * overlay_crop[:, :, :3]
+    else:
+        roi[:] = overlay_crop[:, :, :3]
 
