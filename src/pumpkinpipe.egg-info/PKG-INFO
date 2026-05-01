@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pumpkinpipe
-Version: 0.1.0
+Version: 0.1.3
 Summary: Student-friendly MediaPipe Tasks wrapper
 License: Copyright (c) 2026 SmugPumpkins
         
@@ -39,3 +39,20 @@ pip install pumpkinpipe
 See the documentation here:
 
 https://smugpumpkins.github.io/Pumpkinpipe/
+
+
+Rebuild code:
+
+*Remember to update the version number in `pyproject.toml` first!
+
+```
+py -m pip install --upgrade build twine
+```
+```
+py -m build
+```
+
+Reupload code to pyPI:
+```
+py -m twine upload --verbose dist/*
+```
