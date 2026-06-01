@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pumpkinpipe
-Version: 0.1.3
+Version: 0.1.4
 Summary: Student-friendly MediaPipe Tasks wrapper
 License: Copyright (c) 2026 SmugPumpkins
         
@@ -30,29 +30,192 @@ Requires-Dist: numpy
 Dynamic: license-file
 
 # Pumpkinpipe
-This is a library that combines different tools for computer vision in a way that is simplified and student facing.
 
-```
+Pumpkinpipe is a student-friendly wrapper around MediaPipe Tasks with a small set of OpenCV drawing utilities. It bundles the required MediaPipe model files so beginners can start with hand, pose, and face landmarks without first learning the MediaPipe task setup boilerplate.
+
+```powershell
 pip install pumpkinpipe
 ```
 
-See the documentation here:
+Documentation is published at:
 
 https://smugpumpkins.github.io/Pumpkinpipe/
 
+## Quick Start
 
-Rebuild code:
+Pumpkinpipe works with normal OpenCV images. OpenCV frames are BGR images, and the detectors handle the MediaPipe RGB conversion internally.
 
-*Remember to update the version number in `pyproject.toml` first!
+By default, Pumpkinpipe assumes webcam frames have already been mirrored with `cv2.flip(frame, 1)`. For pose and face, this means left/right shortcuts are swapped so `pose.left_shoulder` and `face.left_eye` refer to the left side as it appears on screen. Pass `flip=False` to keep MediaPipe's original left/right labels for unmirrored images.
 
+```python
+import cv2
+from pumpkinpipe.hand import HandDetector
+
+cap = cv2.VideoCapture(0)
+detector = HandDetector(max_hands=2)
+
+while True:
+    success, frame = cap.read()
+    if not success:
+        break
+
+    frame = cv2.flip(frame, 1)
+    hands = detector.find_hands(frame)
+
+    for hand in hands:
+        hand.draw()
+        print(hand.side, hand.fingers_up(), hand.center)
+
+    cv2.imshow("Pumpkinpipe Hands", frame)
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 ```
+
+## Hand Detection
+
+```python
+from pumpkinpipe.hand import HandDetector
+
+detector = HandDetector(max_hands=2)
+hands = detector.find_hands(frame)
+
+for hand in hands:
+    hand.debug()
+    print(hand.thumb)
+    print(hand.index)
+    print(hand.flags)
+    print(hand.fingers_up())
+```
+
+Useful hand properties:
+
+- `hand.landmarks`: 21 `(x, y, z)` pixel landmarks.
+- `hand.normalized_landmarks`: original normalized MediaPipe landmark values.
+- `hand.side`: `"Left"` or `"Right"`.
+- `hand.thumb`, `hand.index`, `hand.middle`, `hand.ring`, `hand.pinky`, `hand.wrist`: common landmark shortcuts.
+- `hand.flags`: five binary values for thumb, index, middle, ring, and pinky.
+- `hand.box` and `hand.center`: bounding box information.
+
+## Pose Detection
+
+```python
+from pumpkinpipe.pose import PoseDetector
+
+detector = PoseDetector(max_poses=1)
+poses = detector.find_poses(frame)
+
+for pose in poses:
+    pose.draw()
+    print(pose.nose)
+    print(pose.left_shoulder, pose.right_shoulder)
+    print(pose.left_ankle, pose.right_ankle)
+```
+
+Useful pose properties:
+
+- `pose.landmarks`: 33 `(x, y, z)` pixel landmarks.
+- `pose.normalized_landmarks`: original normalized MediaPipe landmark values.
+- `pose.world_landmarks`: MediaPipe world landmarks in meters when available.
+- `pose.nose`, `pose.left_shoulder`, `pose.right_shoulder`, `pose.left_wrist`, `pose.right_wrist`, `pose.left_hip`, `pose.right_hip`, `pose.left_ankle`, `pose.right_ankle`: common landmark shortcuts.
+- `pose.box` and `pose.center`: bounding box information.
+
+For an unmirrored image, call `detector.find_poses(frame, flip=False)`.
+
+## Face Detection
+
+```python
+from pumpkinpipe.face import FaceDetector
+
+detector = FaceDetector(number_of_faces=1)
+faces = detector.find_faces(frame)
+
+for face in faces:
+    face.draw()
+    print(face.center)
+    print(face.left_eye_open, face.right_eye_open)
+    print(face.mouth_open)
+    print(face.left_eye, face.right_eye)
+    print(face.iris_tracking)
+    print(len(face.landmarks))
+```
+
+Useful face properties:
+
+- `face.landmarks`: face mesh `(x, y, z)` pixel landmarks.
+- `face.normalized_landmarks`: original normalized MediaPipe landmark values.
+- `face.left_eye`, `face.right_eye`, `face.left_eyebrow`, `face.right_eyebrow`, `face.left_iris`, `face.right_iris`: common feature groups.
+- `face.left_eye_open`, `face.right_eye_open`, `face.mouth_open`: simple open/closed states.
+- `face.left_iris_center`, `face.right_iris_center`: 2D pixel centers of each iris.
+- `face.iris_tracking`: normalized iris positions inside each eye as `(x, y)` values.
+- `face.box` and `face.center`: bounding box information.
+
+For an unmirrored image, call `detector.find_faces(frame, flip=False)`.
+
+## Drawing And Debugging
+
+Each detected object can draw on the image it came from by default:
+
+```python
+hand.draw()
+pose.draw()
+face.draw()
+```
+
+You can also pass a specific target image:
+
+```python
+pose.debug(frame)
+```
+
+Style setters use OpenCV BGR color order:
+
+```python
+pose.set_connection_style(stroke=(255, 255, 255), thickness=3)
+pose.set_landmarks_style(fill=(0, 255, 0), radius=5)
+```
+
+## OpenCV Utilities
+
+Pumpkinpipe includes simple helpers in `pumpkinpipe.utils.drawing` and `pumpkinpipe.utils.text`:
+
+```python
+from pumpkinpipe.utils.drawing import circle, line, rectangle
+from pumpkinpipe.utils.text import HAlign, VAlign, stack_text
+
+circle(frame, (100, 100), 20, fill=(0, 255, 0))
+line(frame, (10, 10), (200, 200), color=(255, 0, 0), thickness=4)
+rectangle(frame, (20, 20), (120, 80), fill=None, outline=(255, 255, 255))
+stack_text(frame, ["Hello", "Pumpkinpipe"], (20, 20), h_align=HAlign.LEFT, v_align=VAlign.TOP)
+```
+
+## Development
+
+Install locally:
+
+```powershell
+pip install -e .
+```
+
+Run tests:
+
+```powershell
+python -m pytest
+```
+
+Build package:
+
+```powershell
 py -m pip install --upgrade build twine
-```
-```
 py -m build
 ```
 
-Reupload code to pyPI:
-```
+Upload to PyPI:
+
+```powershell
 py -m twine upload --verbose dist/*
 ```
+
+Remember to update the version number in `pyproject.toml` before building a release.
